@@ -18,6 +18,7 @@ const exchangeHeads = require('./exchange-heads')
 const { isDefined, io } = require('./utils')
 const Storage = require('orbit-db-storage-adapter')
 const migrations = require('./migrations')
+const { EventEmitter } = require('events')
 
 const Logger = require('logplease')
 const logger = Logger.create('orbit-db')
@@ -54,6 +55,8 @@ class OrbitDB {
     this.caches[this.directory] = { cache: options.cache, handlers: new Set() }
     this.keystore = options.keystore
     this.stores = {}
+    this._relayEvents = options.relayEvents
+    this.events = new EventEmitter()
 
     // AccessControllers module can be passed in to enable
     // testing with orbit-db-access-controller
@@ -120,6 +123,10 @@ class OrbitDB {
       const cachePath = path.join(options.directory, id, '/cache')
       const cacheStorage = await options.storage.createStore(cachePath)
       options.cache = new Cache(cacheStorage)
+    }
+
+    if (!options.relayEvents) {
+      options.relayEvents = []
     }
 
     const finalOptions = Object.assign({}, options, { peerId: id })
@@ -197,6 +204,11 @@ class OrbitDB {
 
     // Remove all databases from the state
     this.stores = {}
+
+    // Remove all event listeners
+    for (var event in this.events._events) {
+      this.events.removeAllListeners(event)
+    }
   }
 
   // Alias for disconnect()
@@ -237,11 +249,16 @@ class OrbitDB {
     const addr = address.toString()
     this.stores[addr] = store
 
+    const relayEvents = options.relayEvents || this._relayEvents
+    for (const eventType of relayEvents) {
+      store.events.on(eventType, (...args) => this.events.emit(eventType, addr, ...args))
+    }
+
     // Subscribe to pubsub to get updates from peers,
     // this is what hooks us into the message propagation layer
     // and the p2p network
     if (opts.replicate && this._pubsub) { await this._pubsub.subscribe(addr, this._onMessage.bind(this), this._onPeerConnected.bind(this)) }
-
+    this.events.emit('open', addr)
     return store
   }
 
