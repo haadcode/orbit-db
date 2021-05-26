@@ -128,6 +128,14 @@ Object.keys(testAPIs).forEach(API => {
           assert.equal(next.payload.key, null)
           assert.equal(next.payload.value, 'hello4')
         })
+        
+        it("Negative limit values return the same as positive limits", () => {
+           let amount = Math.floor(Math.random()*100) + 1
+           let iter = db.iterator({ limit: amount }).collect()
+           let iter1 = db.iterator({ limit: -amount }).collect()
+           
+           assert.equal(iter.length, iter1.length)
+        })
 
         it('implements Iterator interface', () => {
           const iter = db.iterator({ limit: -1 })
@@ -139,16 +147,13 @@ Object.keys(testAPIs).forEach(API => {
           assert.equal(messages.length, hashes.length)
         })
 
-        it('returns 1 item as default', () => {
-          const iter = db.iterator()
-          const first = iter.next().value
-          const second = iter.next().value
-          assert.equal(first.hash, hashes[hashes.length - 1])
-          assert.equal(second, null)
-          assert.equal(first.payload.value, 'hello4')
+        it('returns all items as default', () => {
+          const iter = db.iterator().collect()
+          
+          assert.equal(iter.length, hashes.length)
         })
 
-        it('returns items in the correct order', () => {
+        it('returns items in the order they were added', () => {
           const amount = 3
           const iter = db.iterator({ limit: amount })
           let i = hashes.length - amount
