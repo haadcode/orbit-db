@@ -32,6 +32,9 @@ const databaseTypes = {
   keyvalue: KeyValueStore
 }
 
+/**
+ * OrbitDB instance
+ */
 class OrbitDB {
   constructor (ipfs, identity, options = {}) {
     if (!isDefined(ipfs)) { throw new Error('IPFS is a required argument. See https://github.com/orbitdb/orbit-db/blob/master/API.md#createinstance') }
@@ -77,6 +80,12 @@ class OrbitDB {
 
   get cache () { return this.caches[this.directory].cache }
 
+  /**
+   * Return an instance of OrbitDB given an IPFS or HTTP-IPFS-Client
+   * @param ipfs - the js-ipfs instance or ipfshttpclient instance
+   * @param options - several options
+   * @return instance of orbitdb
+   */
   static async createInstance (ipfs, options = {}) {
     if (!isDefined(ipfs)) { throw new Error('IPFS is a required argument. See https://github.com/orbitdb/orbit-db/blob/master/API.md#createinstance') }
 
@@ -127,15 +136,23 @@ class OrbitDB {
   }
 
   /* Databases */
+  /**
+   * Open or create a new feed database
+   * @param {OrbitDBAddress|string} address or name of the database to open/create
+   */
   async feed (address, options = {}) {
     options = Object.assign({ create: true, type: 'feed' }, options)
     return this.open(address, options)
   }
 
+  /**
+   * Open or create a new log database
+   */
   async log (address, options = {}) {
     options = Object.assign({ create: true, type: 'eventlog' }, options)
     return this.open(address, options)
   }
+
 
   async eventlog (address, options = {}) {
     return this.log(address, options)
@@ -164,6 +181,9 @@ class OrbitDB {
     return this.docs(address, options)
   }
 
+  /**
+   * Disconnect OrbitDB instance from the network.
+   */
   async disconnect () {
     // close keystore
     await this.keystore.close()
@@ -396,14 +416,13 @@ class OrbitDB {
     return cache
   }
 
-  /*
-      options = {
-        localOnly: false // if set to true, throws an error if database can't be found locally
-        create: false // whether to create the database
-        type: TODO
-        overwrite: TODO
-
-      }
+  /**
+   * Open a database by it's address.
+   * @param {OrbitDBAddress|string} address to connect to.
+   * @param {boolean} options.localOnly if set to true, throws an error if database can't be found locally
+   * @param {boolean} options.create whether to create the database.
+   * @param {} options.type TODO
+   * @param {} options.overwrite TODO
    */
   async open (address, options = {}) {
     logger.debug('open()')
@@ -467,9 +486,9 @@ class OrbitDB {
 
   /**
    * Check if we have the database, or part of it, saved locally
-   * @param  {[Cache]} cache [The OrbitDBCache instance containing the local data]
-   * @param  {[OrbitDBAddress]} dbAddress [Address of the database to check]
-   * @return {[Boolean]} [Returns true if we have cached the db locally, false if not]
+   * @param  {Array<Cache>} cache [The OrbitDBCache instance containing the local data]
+   * @param  {Array<OrbitDBAddress>} dbAddress [Address of the database to check]
+   * @return {Array<Boolean>} [Returns true if we have cached the db locally, false if not]
    */
   async _haveLocalData (cache, dbAddress) {
     if (!cache) {
@@ -493,7 +512,7 @@ class OrbitDB {
   /**
    * Returns supported database types as an Array of strings
    * Eg. [ 'counter', 'eventlog', 'feed', 'docstore', 'keyvalue']
-   * @return {[Array]} [Supported database types]
+   * @return {Array<a>} [Supported database types]
    */
   static get databaseTypes () {
     return Object.keys(databaseTypes)
