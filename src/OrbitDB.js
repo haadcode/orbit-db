@@ -235,6 +235,7 @@ class OrbitDB {
 
     // ID of the store is the address as a string
     const addr = address.toString()
+    store.ready = new Promise(resolve => { store.events.on('ready', resolve) })
     this.stores[addr] = store
 
     // Subscribe to pubsub to get updates from peers,
@@ -254,6 +255,7 @@ class OrbitDB {
   // Callback for receiving a message from the network
   async _onMessage (address, heads, peer) {
     const store = this.stores[address]
+    await store.ready
     try {
       logger.debug(`Received ${heads.length} heads for '${address}':\n`, JSON.stringify(heads.map(e => e.hash), null, 2))
       if (store && heads) {
@@ -276,6 +278,8 @@ class OrbitDB {
     const onChannelCreated = channel => { this._directConnections[channel._receiverID] = channel }
 
     const onMessage = (address, heads) => this._onMessage(address, heads, peer)
+
+    await getStore(address).ready
 
     await exchangeHeads(
       this._ipfs,
